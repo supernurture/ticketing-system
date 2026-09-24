@@ -1,0 +1,7 @@
+# ERD + per-table docs generated from the live database:  tbls doc --rm-dist
+# SVG, not jpg/png: tbls' own rasterizer fills the relation curves black. docs/erd.jpg is this SVG rendered in a browser.
+dsn: postgres://postgres:postgres@localhost:5432/ticketing?sslmode=disable
+docPath: docs/db
+er:
+  format: svg
+  comment: true
