@@ -103,7 +103,6 @@ Dibangun dari template [supernurture/go-template](https://github.com/supernurtur
 ```bash
 go test ./...          # unit test, tidak butuh database (DB di-mock dengan sqlmock)
 make oapicodegen       # generate ulang kode dari spec (butuh make + bash)
-tbls doc --rm-dist     # generate ulang docs/db dari database (https://github.com/k1LoW/tbls)
 ```
 
 `make test` menjalankan test yang sama dengan `-race`, yang di Windows butuh GCC (CGO). Tanpa GCC, pakai `go test ./...`.

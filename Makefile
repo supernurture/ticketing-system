@@ -5,7 +5,7 @@ BIN_DIR := bin
 APPS := $(notdir $(wildcard cmd/*))
 APP  ?= $(firstword $(APPS))
 
-# Pinned: .golangci.yml uses the v1 config format, which v2 does not read.
+# Pinned so `make lint` gives the same result on every machine.
 GOLANGCI_VERSION ?= 1.64.8
 
 .PHONY: help run test cover cover-gaps vet lint lint-install fmt check tidy build build-all clean oapicodegen
@@ -40,10 +40,10 @@ cover-gaps: ## List every function that is not fully covered
 vet: ## go vet
 	go vet ./...
 
-lint: ## golangci-lint, configured by .golangci.yml (see lint-install)
+lint: ## golangci-lint with its default linters (see lint-install)
 	golangci-lint run
 
-lint-install: ## Install the golangci-lint version .golangci.yml is written for
+lint-install: ## Install the pinned golangci-lint version
 	go install github.com/golangci/golangci-lint/cmd/golangci-lint@v$(GOLANGCI_VERSION)
 
 fmt: ## Format and fix imports (go install golang.org/x/tools/cmd/goimports@latest)
