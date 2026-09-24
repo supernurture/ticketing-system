@@ -2,13 +2,12 @@ package auth
 
 import (
 	"context"
-	"errors"
 
 	"gorm.io/gorm"
 )
 
 type User struct {
-	ID           int64 `gorm:"primaryKey"`
+	ID           int64
 	Email        string
 	PasswordHash string
 	Role         string
@@ -24,9 +23,12 @@ func NewRepository(db *gorm.DB) *Repository {
 
 // FindByEmail returns the user, or ok=false when no user has that email.
 func (r *Repository) FindByEmail(ctx context.Context, email string) (user User, ok bool, err error) {
-	err = r.db.WithContext(ctx).Where("email = ?", email).Take(&user).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return User{}, false, nil
+	result := r.db.WithContext(ctx).Raw(`
+		SELECT id, email, password_hash, role
+		FROM users
+		WHERE email = ?`, email).Scan(&user)
+	if result.Error != nil {
+		return User{}, false, result.Error
 	}
-	return user, err == nil, err
+	return user, result.RowsAffected > 0, nil
 }

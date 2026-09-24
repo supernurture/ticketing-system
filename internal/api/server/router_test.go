@@ -142,12 +142,12 @@ func TestShowtimeRoutesNeedAToken(t *testing.T) {
 // the API only has to turn the violation into a 409.
 func TestCreateOverlappingShowtimeIs409(t *testing.T) {
 	deps, mock := withPostgres(t, newTestDeps(t))
-	mock.ExpectQuery(`SELECT "duration_minutes" FROM "movies"`).
+	mock.ExpectQuery(`SELECT duration_minutes FROM movies`).
 		WillReturnRows(sqlmock.NewRows([]string{"duration_minutes"}).AddRow(120))
-	mock.ExpectQuery(`SELECT count\(\*\) FROM "studios"`).
-		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
+	mock.ExpectQuery(`SELECT EXISTS \(SELECT 1 FROM studios WHERE id = \$1\)`).
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
 	mock.ExpectBegin()
-	mock.ExpectQuery(`INSERT INTO "showtimes"`).
+	mock.ExpectQuery(`INSERT INTO showtimes`).
 		WillReturnError(&pgconn.PgError{Code: "23P01", ConstraintName: "showtimes_no_overlap"})
 	mock.ExpectRollback()
 
@@ -213,16 +213,14 @@ func TestFailedLoginAndAdminChangeAreLogged(t *testing.T) {
 		return rec.Code
 	}
 
-	mock.ExpectQuery(`SELECT \* FROM "users"`).
+	mock.ExpectQuery(`FROM users WHERE email = \$1`).
 		WillReturnRows(sqlmock.NewRows([]string{"id", "email", "password_hash", "role"}))
 	if code := send(http.MethodPost, "/api/v1/auth/login", "req-login-1", "",
 		`{"email":" Nobody@MKP.test ","password":"guess-123"}`); code != http.StatusUnauthorized {
 		t.Fatalf("login status = %d, want 401", code)
 	}
 
-	mock.ExpectBegin()
-	mock.ExpectExec(`DELETE FROM "showtimes"`).WillReturnResult(sqlmock.NewResult(0, 1))
-	mock.ExpectCommit()
+	mock.ExpectExec(`DELETE FROM showtimes WHERE id = \$1`).WithArgs(int64(9)).WillReturnResult(sqlmock.NewResult(0, 1))
 	if code := send(http.MethodDelete, "/api/v1/showtimes/9", "req-delete-1",
 		token(t, middleware.RoleAdmin), ""); code != http.StatusNoContent {
 		t.Fatalf("delete status = %d, want 204", code)

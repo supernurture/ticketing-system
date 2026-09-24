@@ -78,7 +78,8 @@ func expectUser(mock sqlmock.Sqlmock, email string, found bool) {
 	if found {
 		rows.AddRow(int64(7), email, dummyHash, "customer")
 	}
-	mock.ExpectQuery(`SELECT \* FROM "users" WHERE email = \$1`).WithArgs(email, 1).WillReturnRows(rows)
+	mock.ExpectQuery(`SELECT id, email, password_hash, role FROM users WHERE email = \$1`).
+		WithArgs(email).WillReturnRows(rows)
 }
 
 func TestLoginIssuesATokenForTheRightPassword(t *testing.T) {
@@ -151,7 +152,7 @@ func TestLoginRejectsWrongPasswordAndUnknownEmailAlike(t *testing.T) {
 
 func TestLoginSurfacesDatabaseFailure(t *testing.T) {
 	service, mock := mockService(t)
-	mock.ExpectQuery(`SELECT \* FROM "users"`).WillReturnError(errors.New("connection reset"))
+	mock.ExpectQuery(`FROM users WHERE email = \$1`).WillReturnError(errors.New("connection reset"))
 
 	_, err := service.Login(context.Background(), "customer@mkp.test", password)
 	if err == nil || errors.Is(err, ErrInvalidCredentials) {
