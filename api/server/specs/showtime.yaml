@@ -1,0 +1,304 @@
+openapi: 3.0.3
+info:
+  title: Showtime API
+  description: >-
+    CRUD for jadwal tayang. Every route needs a bearer token from /api/v1/auth/login;
+    reading is open to any logged-in user, writing is for admins only.
+  version: 1.0.0
+tags:
+  - name: showtime
+security:
+  - bearerAuth: []
+paths:
+  /api/v1/showtimes:
+    get:
+      operationId: listShowtimes
+      tags:
+        - showtime
+      summary: List showtimes
+      parameters:
+        - name: movie_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: cinema_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: from
+          in: query
+          description: Only showtimes starting at or after this time (RFC 3339). Encode "+" as %2B, e.g. 2026-01-01T00:00:00%2B07:00.
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          description: Only showtimes starting before this time (RFC 3339). Encode "+" as %2B.
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100000
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: One page of showtimes, earliest first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShowtimeList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: createShowtime
+      tags:
+        - showtime
+      summary: Create a showtime (admin)
+      description: >-
+        end_at is computed from the movie duration (the studio then needs 15 minutes of cleaning before the next showtime), and the studio's seats become this showtime's seat stock.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShowtimeRequest'
+      responses:
+        '201':
+          description: The created showtime.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Showtime'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/showtimes/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: getShowtime
+      tags:
+        - showtime
+      summary: Get a showtime
+      responses:
+        '200':
+          description: The showtime.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Showtime'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      operationId: updateShowtime
+      tags:
+        - showtime
+      summary: Update a showtime (admin)
+      description: >-
+        Refused with 409 while the showtime has a paid booking or one still within its payment deadline,
+        so no customer's ticket changes under them. Expired unpaid bookings do not block it.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShowtimeRequest'
+      responses:
+        '200':
+          description: The updated showtime.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Showtime'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      operationId: deleteShowtime
+      tags:
+        - showtime
+      summary: Delete a showtime (admin)
+      description: Refused with 409 once the showtime has any booking; its history is kept, so cancel it instead.
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Invalid input.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Missing, invalid or expired token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Logged in, but not an admin.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: No showtime with that id.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Overlaps another showtime in the studio (15 minutes of cleaning included), or the showtime already has bookings.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    ShowtimeRequest:
+      type: object
+      required:
+        - movie_id
+        - studio_id
+        - start_at
+        - price
+      properties:
+        movie_id:
+          type: integer
+          format: int64
+          example: 1
+        studio_id:
+          type: integer
+          format: int64
+          example: 2
+        start_at:
+          type: string
+          format: date-time
+          example: '2026-12-01T19:00:00+07:00'
+        price:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Rupiah, greater than 0.
+          example: 50000
+    Showtime:
+      type: object
+      required:
+        - id
+        - movie_id
+        - movie_title
+        - cinema_id
+        - cinema_name
+        - studio_id
+        - studio_name
+        - start_at
+        - end_at
+        - price
+        - status
+      properties:
+        id:
+          type: integer
+          format: int64
+        movie_id:
+          type: integer
+          format: int64
+        movie_title:
+          type: string
+          example: Pengabdi Setan 3
+        cinema_id:
+          type: integer
+          format: int64
+        cinema_name:
+          type: string
+          example: Jakarta Central
+        studio_id:
+          type: integer
+          format: int64
+        studio_name:
+          type: string
+          example: Studio 1
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        price:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum: [SCHEDULED, CANCELLED]
+    ShowtimeList:
+      type: object
+      required:
+        - data
+        - page
+        - limit
+        - total
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Showtime'
+        page:
+          type: integer
+        limit:
+          type: integer
+        total:
+          type: integer
+          format: int64
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string

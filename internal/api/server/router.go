@@ -10,8 +10,10 @@ import (
 
 	"ticketing-system/internal/api/server/modules/auth"
 	"ticketing-system/internal/api/server/modules/health"
+	"ticketing-system/internal/api/server/modules/showtime"
 	authcontract "ticketing-system/internal/api/server/oapicodegen/auth"
 	healthcontract "ticketing-system/internal/api/server/oapicodegen/health"
+	showtimecontract "ticketing-system/internal/api/server/oapicodegen/showtime"
 	"ticketing-system/internal/config"
 	"ticketing-system/internal/container"
 	"ticketing-system/internal/middleware"
@@ -49,6 +51,12 @@ func register(router gin.IRouter, cfg *config.Config, deps *container.Container)
 		authcontract.NewStrictHandlerWithOptions(
 			auth.NewHandler(auth.NewService(auth.NewRepository(db), secret, cfg.Auth.TokenTTL)), nil, authOptions),
 		authcontract.GinServerOptions{ErrorHandler: invalidParam})
+
+	// Auth runs as group middleware, ahead of parameter parsing, so an anonymous caller always gets 401.
+	showtimecontract.RegisterHandlersWithOptions(router.Group("", middleware.Auth(secret)),
+		showtimecontract.NewStrictHandlerWithOptions(
+			showtime.NewHandler(showtime.NewService(showtime.NewRepository(db))), nil, showtimeOptions),
+		showtimecontract.GinServerOptions{ErrorHandler: invalidParam})
 }
 
 // The generated defaults write err.Error() into the body, leaking internals such as database errors,
@@ -58,6 +66,9 @@ var (
 		RequestErrorHandlerFunc: badRequest, HandlerErrorFunc: internalError, ResponseErrorHandlerFunc: internalError,
 	}
 	authOptions = authcontract.StrictGinServerOptions{
+		RequestErrorHandlerFunc: badRequest, HandlerErrorFunc: internalError, ResponseErrorHandlerFunc: internalError,
+	}
+	showtimeOptions = showtimecontract.StrictGinServerOptions{
 		RequestErrorHandlerFunc: badRequest, HandlerErrorFunc: internalError, ResponseErrorHandlerFunc: internalError,
 	}
 )
