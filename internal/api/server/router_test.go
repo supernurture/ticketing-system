@@ -166,6 +166,32 @@ func TestCreateOverlappingShowtimeIs409(t *testing.T) {
 	}
 }
 
+// A studio with no seat layout would give a showtime nothing to sell, so it is refused and nothing is saved.
+func TestCreateShowtimeInStudioWithoutSeatsIs400(t *testing.T) {
+	deps, mock := withPostgres(t, newTestDeps(t))
+	mock.ExpectQuery(`SELECT duration_minutes FROM movies`).
+		WillReturnRows(sqlmock.NewRows([]string{"duration_minutes"}).AddRow(120))
+	mock.ExpectQuery(`SELECT EXISTS \(SELECT 1 FROM studios WHERE id = \$1\)`).
+		WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
+	mock.ExpectBegin()
+	mock.ExpectQuery(`INSERT INTO showtimes`).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(int64(10)))
+	mock.ExpectExec(`INSERT INTO showtime_seats`).WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectRollback()
+
+	rec := do(newTestRouter(t, testConfig(), deps),
+		http.MethodPost, "/api/v1/showtimes", token(t, middleware.RoleAdmin), showtimeBody)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusBadRequest, rec.Body)
+	}
+	if got, want := rec.Body.String(), `{"message":"studio 1 has no seats"}`; !strings.HasPrefix(got, want) {
+		t.Errorf("body = %q, want %q", got, want)
+	}
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Error(err) // includes the rollback: the showtime row must not be kept
+	}
+}
+
 func TestLoginRejectsBadBodies(t *testing.T) {
 	deps, _ := withPostgres(t, newTestDeps(t))
 	cfg := testConfig()

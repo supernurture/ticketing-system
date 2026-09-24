@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	ErrNotFound    = errors.New("showtime not found")
-	ErrHasBookings = errors.New("showtime already has bookings")
+	ErrNotFound         = errors.New("showtime not found")
+	ErrHasBookings      = errors.New("showtime already has bookings")
+	ErrStudioHasNoSeats = errors.New("studio has no seats")
 )
 
 // ValidationError is a caller mistake, answered with 400.
@@ -70,7 +71,7 @@ func (s *Service) Create(ctx context.Context, in Input) (Showtime, error) {
 	row.Status = statusScheduled
 
 	if err := s.showtimes.Create(ctx, &row); err != nil {
-		return Showtime{}, conflict(err)
+		return Showtime{}, saveError(err, row.StudioID)
 	}
 	return s.showtimes.Get(ctx, row.ID) // re-read for the movie, cinema and studio names
 }
@@ -83,7 +84,7 @@ func (s *Service) Update(ctx context.Context, id int64, in Input) (Showtime, err
 	row.ID = id
 
 	if err := s.showtimes.Update(ctx, &row); err != nil {
-		return Showtime{}, conflict(err)
+		return Showtime{}, saveError(err, row.StudioID)
 	}
 	return s.showtimes.Get(ctx, id)
 }
@@ -133,6 +134,15 @@ func (s *Service) build(ctx context.Context, in Input) (Showtime, error) {
 		StudioFreeAt: end.Add(cleaningTime),
 		Price:        in.Price,
 	}, nil
+}
+
+// saveError maps a failed create or update: a studio without seats is the caller's mistake (400),
+// anything else goes through conflict.
+func saveError(err error, studioID int64) error {
+	if errors.Is(err, ErrStudioHasNoSeats) {
+		return invalid("studio %d has no seats", studioID)
+	}
+	return conflict(err)
 }
 
 // conflict turns the database's constraint violations into a ConflictError.

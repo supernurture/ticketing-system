@@ -191,7 +191,16 @@ func (r *Repository) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
+// generateSeats returns ErrStudioHasNoSeats when the studio has no seat layout yet: a showtime without
+// seat stock could never sell a ticket, so the caller's transaction is rolled back instead.
 func generateSeats(tx *gorm.DB, row *Showtime) error {
-	return tx.Exec(`INSERT INTO showtime_seats (showtime_id, seat_id) SELECT ?, id FROM seats WHERE studio_id = ?`,
-		row.ID, row.StudioID).Error
+	result := tx.Exec(`INSERT INTO showtime_seats (showtime_id, seat_id) SELECT ?, id FROM seats WHERE studio_id = ?`,
+		row.ID, row.StudioID)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return ErrStudioHasNoSeats
+	}
+	return nil
 }
