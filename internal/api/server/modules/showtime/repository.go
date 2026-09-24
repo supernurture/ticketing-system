@@ -22,7 +22,7 @@ type Showtime struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 
-	// Filled only by reads (selectWithNames), never written.
+	// Read-only, filled by selectWithNames.
 	MovieTitle string
 	CinemaID   int64
 	CinemaName string
@@ -47,7 +47,7 @@ func NewRepository(db *gorm.DB) *Repository {
 }
 
 func (r *Repository) List(ctx context.Context, f Filter) ([]Showtime, int64, error) {
-	// Every value goes through a placeholder; only these fixed condition strings are joined into the SQL.
+	// Values go through placeholders; only fixed condition strings are joined into the SQL.
 	var conds []string
 	var args []any
 	where := func(cond string, arg any) {
@@ -114,8 +114,7 @@ func (r *Repository) StudioExists(ctx context.Context, studioID int64) (bool, er
 	return exists, err
 }
 
-// Create stores the showtime and copies its studio's seats into showtime_seats, the stock customers book from.
-// It sets row.ID; the service re-reads the row for everything else.
+// Create inserts the showtime, sets row.ID and copies the studio's seats into showtime_seats.
 func (r *Repository) Create(ctx context.Context, row *Showtime) error {
 	return database.WithTransaction(ctx, r.db, func(tx *gorm.DB) error {
 		err := tx.Raw(`
@@ -131,12 +130,10 @@ func (r *Repository) Create(ctx context.Context, row *Showtime) error {
 	})
 }
 
-// Update replaces the showtime's fields. It returns ErrNotFound, or ErrHasBookings while a booking is live
-// (paid, or waiting for payment within its deadline), so a ticket a customer holds never moves under them.
-// An expired booking does not block the update.
+// Update returns ErrNotFound, or ErrHasBookings while a paid or unexpired pending booking exists.
 func (r *Repository) Update(ctx context.Context, row *Showtime) error {
 	return database.WithTransaction(ctx, r.db, func(tx *gorm.DB) error {
-		// Row lock: a booking cannot slip in between the check below and the update.
+		// Lock the row so no booking slips in before the update.
 		var currentStudioID int64
 		result := tx.Raw(`SELECT studio_id FROM showtimes WHERE id = ? FOR UPDATE`, row.ID).Scan(&currentStudioID)
 		if result.Error != nil {
@@ -179,7 +176,7 @@ func (r *Repository) Update(ctx context.Context, row *Showtime) error {
 	})
 }
 
-// Delete returns ErrNotFound, or the foreign-key violation from bookings when the showtime has any.
+// Delete returns ErrNotFound, or a foreign-key error if the showtime has bookings.
 func (r *Repository) Delete(ctx context.Context, id int64) error {
 	result := r.db.WithContext(ctx).Exec(`DELETE FROM showtimes WHERE id = ?`, id)
 	if result.Error != nil {
@@ -191,8 +188,7 @@ func (r *Repository) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-// generateSeats returns ErrStudioHasNoSeats when the studio has no seat layout yet: a showtime without
-// seat stock could never sell a ticket, so the caller's transaction is rolled back instead.
+// generateSeats returns ErrStudioHasNoSeats if the studio has no seats, rolling back the caller.
 func generateSeats(tx *gorm.DB, row *Showtime) error {
 	result := tx.Exec(`INSERT INTO showtime_seats (showtime_id, seat_id) SELECT ?, id FROM seats WHERE studio_id = ?`,
 		row.ID, row.StudioID)

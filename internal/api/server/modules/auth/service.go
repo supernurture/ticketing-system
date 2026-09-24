@@ -16,8 +16,7 @@ import (
 	"ticketing-system/pkg/logger"
 )
 
-// ErrInvalidCredentials is returned for an unknown email and a wrong password alike,
-// so a caller cannot probe which emails are registered.
+// ErrInvalidCredentials covers unknown email and wrong password alike, so emails cannot be probed.
 var ErrInvalidCredentials = errors.New("invalid email or password")
 
 type Token struct {
@@ -69,9 +68,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (Token, err
 	return Token{AccessToken: signed, ExpiresIn: s.ttl, Role: user.Role}, nil
 }
 
-// loginFailed logs why a login failed, which the caller is never told: repeated wrong_password for one
-// user_id is password guessing on that account, many unknown_email is someone probing for accounts.
-// The email is masked and the password is never logged.
+// loginFailed logs the reason (hidden from the caller) with a masked email, never the password.
 func (s *Service) loginFailed(ctx context.Context, email string, userID int64, reason string) {
 	fields := map[string]any{
 		"request_id": middleware.RequestIDFrom(ctx),

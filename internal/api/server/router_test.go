@@ -138,8 +138,7 @@ func TestShowtimeRoutesNeedAToken(t *testing.T) {
 	}
 }
 
-// The overlap check lives in the database (EXCLUDE constraint), so it holds even for two concurrent requests;
-// the API only has to turn the violation into a 409.
+// The database rejects the overlap; the API maps it to 409.
 func TestCreateOverlappingShowtimeIs409(t *testing.T) {
 	deps, mock := withPostgres(t, newTestDeps(t))
 	mock.ExpectQuery(`SELECT duration_minutes FROM movies`).
@@ -166,7 +165,7 @@ func TestCreateOverlappingShowtimeIs409(t *testing.T) {
 	}
 }
 
-// A studio with no seat layout would give a showtime nothing to sell, so it is refused and nothing is saved.
+// A studio without seats is refused and nothing is saved.
 func TestCreateShowtimeInStudioWithoutSeatsIs400(t *testing.T) {
 	deps, mock := withPostgres(t, newTestDeps(t))
 	mock.ExpectQuery(`SELECT duration_minutes FROM movies`).
@@ -188,7 +187,7 @@ func TestCreateShowtimeInStudioWithoutSeatsIs400(t *testing.T) {
 		t.Errorf("body = %q, want %q", got, want)
 	}
 	if err := mock.ExpectationsWereMet(); err != nil {
-		t.Error(err) // includes the rollback: the showtime row must not be kept
+		t.Error(err) // includes the rollback
 	}
 }
 
@@ -215,8 +214,7 @@ func TestLoginRejectsBadBodies(t *testing.T) {
 	}
 }
 
-// Failed logins and admin changes are written to the application log with the caller's request ID,
-// so they can be matched with the access-log line of the same request.
+// Failed logins and admin changes are logged with the request ID.
 func TestFailedLoginAndAdminChangeAreLogged(t *testing.T) {
 	logDir := t.TempDir()
 	log, err := logger.New(logger.Config{ServiceName: "test", Path: logDir})
@@ -263,7 +261,7 @@ func TestFailedLoginAndAdminChangeAreLogged(t *testing.T) {
 	}
 	out := logged.String()
 
-	// The access log carries the request ID too, so each audit line is checked on its own.
+	// The access log has the request ID too, so check each audit line itself.
 	lineWith := func(msg string) string {
 		for _, line := range strings.Split(out, "\n") {
 			if strings.Contains(line, `"`+msg+`"`) {

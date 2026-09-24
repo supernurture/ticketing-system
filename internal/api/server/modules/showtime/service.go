@@ -41,7 +41,7 @@ func NewService(showtimes *Repository) *Service {
 	return &Service{showtimes: showtimes, now: time.Now}
 }
 
-// List expects Page and Limit already set; the handler fills in the defaults for parameters that were not sent.
+// List expects Page and Limit set; the handler fills in defaults.
 func (s *Service) List(ctx context.Context, f Filter) ([]Showtime, int64, error) {
 	switch {
 	case f.Page < 1 || f.Page > maxPage:
@@ -73,7 +73,7 @@ func (s *Service) Create(ctx context.Context, in Input) (Showtime, error) {
 	if err := s.showtimes.Create(ctx, &row); err != nil {
 		return Showtime{}, saveError(err, row.StudioID)
 	}
-	return s.showtimes.Get(ctx, row.ID) // re-read for the movie, cinema and studio names
+	return s.showtimes.Get(ctx, row.ID) // re-read for names
 }
 
 func (s *Service) Update(ctx context.Context, id int64, in Input) (Showtime, error) {
@@ -93,7 +93,7 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 	return conflict(s.showtimes.Delete(ctx, id))
 }
 
-// build validates the input and derives end_at (movie duration) and studio_free_at (end_at + cleaning time).
+// build validates the input and derives end_at and studio_free_at.
 func (s *Service) build(ctx context.Context, in Input) (Showtime, error) {
 	switch {
 	case in.MovieID < 1:
@@ -101,7 +101,7 @@ func (s *Service) build(ctx context.Context, in Input) (Showtime, error) {
 	case in.StudioID < 1:
 		return Showtime{}, invalid("studio_id is required")
 	case in.Price < 1:
-		// A missing price decodes as 0, so 0 is rejected rather than silently selling free tickets.
+		// A missing price decodes as 0; reject it rather than sell free tickets.
 		return Showtime{}, invalid("price must be greater than 0")
 	case in.StartAt.IsZero():
 		return Showtime{}, invalid("start_at is required")
@@ -136,8 +136,7 @@ func (s *Service) build(ctx context.Context, in Input) (Showtime, error) {
 	}, nil
 }
 
-// saveError maps a failed create or update: a studio without seats is the caller's mistake (400),
-// anything else goes through conflict.
+// saveError maps a seatless studio to 400; anything else goes through conflict.
 func saveError(err error, studioID int64) error {
 	if errors.Is(err, ErrStudioHasNoSeats) {
 		return invalid("studio %d has no seats", studioID)

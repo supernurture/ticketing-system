@@ -80,7 +80,7 @@ const (
 	configPath = "configs/"
 )
 
-// Load reads configs/config.yaml, overlays .env and the environment, and validates the result before returning it.
+// Load reads configs/config.yaml, applies .env and env vars, then validates.
 func Load() (*Config, error) {
 	if err := godotenv.Load(dotEnvPath); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, fmt.Errorf("load %s: %w", dotEnvPath, err)

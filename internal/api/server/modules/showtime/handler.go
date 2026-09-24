@@ -34,7 +34,7 @@ func (h *Handler) ListShowtimes(
 		MovieID: params.MovieId, CinemaID: params.CinemaId, From: params.From, To: params.To,
 		Page: defaultPage, Limit: defaultLimit,
 	}
-	// Defaults only for parameters that were not sent, so an explicit page=0 or limit=0 is rejected.
+	// Default only missing params, so an explicit page=0 or limit=0 is rejected.
 	if params.Page != nil {
 		f.Page = *params.Page
 	}
@@ -149,15 +149,14 @@ func isAdmin(ctx context.Context) bool {
 	return middleware.ClaimsFrom(ctx).Role == middleware.RoleAdmin
 }
 
-// audit logs an admin change with the request ID and the admin's user ID, so any change to a showtime
-// can be traced to who made it and matched with the access-log line of the same request.
+// audit logs an admin change with the request ID and the admin's user ID.
 func (h *Handler) audit(ctx context.Context, msg string, fields map[string]any) {
 	fields["request_id"] = middleware.RequestIDFrom(ctx)
 	fields["user_id"] = middleware.ClaimsFrom(ctx).UserID()
 	h.log.Info(msg, fields)
 }
 
-// auditFields records the values a showtime was saved with.
+// auditFields lists the saved showtime values.
 func auditFields(row Showtime) map[string]any {
 	return map[string]any{
 		"showtime_id": row.ID,

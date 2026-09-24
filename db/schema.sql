@@ -4,7 +4,7 @@
 
 BEGIN;
 
--- Lets a GiST exclusion constraint mix "=" on studio_id with "&&" on the time range.
+-- Needed for "=" on studio_id in the GiST exclusion constraint.
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
 CREATE TABLE users (
@@ -67,8 +67,7 @@ CREATE TABLE showtimes (
     studio_id  BIGINT      NOT NULL REFERENCES studios (id),
     start_at   TIMESTAMPTZ NOT NULL,
     end_at     TIMESTAMPTZ NOT NULL,
-    -- Stored rather than computed: an exclusion constraint only accepts immutable expressions,
-    -- and timestamptz + interval is not.
+    -- Stored, not computed: exclusion constraints need immutable expressions.
     studio_free_at TIMESTAMPTZ NOT NULL,
     price      BIGINT      NOT NULL CHECK (price > 0),
     status     VARCHAR(20) NOT NULL DEFAULT 'SCHEDULED' CHECK (status IN ('SCHEDULED', 'CANCELLED')),
@@ -76,8 +75,7 @@ CREATE TABLE showtimes (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (end_at > start_at),
     CHECK (studio_free_at >= end_at),
-    -- Two scheduled showtimes can never overlap in the same studio (cleaning time included),
-    -- even when inserted concurrently.
+    -- No two scheduled showtimes overlap in a studio (cleaning included), even concurrently.
     CONSTRAINT showtimes_no_overlap EXCLUDE USING gist (
         studio_id WITH =,
         tstzrange(start_at, studio_free_at) WITH &&
@@ -103,7 +101,7 @@ CREATE TABLE bookings (
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK ((status = 'PAID') = (paid_at IS NOT NULL) OR status = 'REFUNDED'),
-    -- Target of the composite foreign keys below: a seat or ticket can only point at a booking of its own showtime.
+    -- Target of the composite FKs below: seats and tickets only point at their own showtime's bookings.
     UNIQUE (id, showtime_id)
 );
 CREATE INDEX bookings_user_id_idx ON bookings (user_id);
@@ -134,7 +132,7 @@ CREATE TABLE tickets (
     FOREIGN KEY (booking_id, showtime_id) REFERENCES bookings (id, showtime_id),
     FOREIGN KEY (showtime_id, seat_id) REFERENCES showtime_seats (showtime_id, seat_id)
 );
--- Last line of defence: one seat can only ever have one live ticket per showtime.
+-- One live ticket per seat per showtime.
 CREATE UNIQUE INDEX tickets_one_active_per_seat ON tickets (showtime_id, seat_id) WHERE status = 'ACTIVE';
 CREATE INDEX tickets_booking_id_idx ON tickets (booking_id);
 COMMENT ON TABLE tickets IS 'Issued once a booking is PAID; VOID after a refund';

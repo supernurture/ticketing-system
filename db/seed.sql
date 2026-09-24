@@ -26,7 +26,7 @@ INSERT INTO movies (title, duration_minutes, rating) VALUES
     ('Pengabdi Setan 3', 120, '17+'),
     ('Jumbo 2', 100, 'SU');
 
--- Tomorrow in WIB, so the sample showtimes are always in the future. Cleaning time is 15 minutes, as in the API.
+-- Tomorrow in WIB so showtimes stay in the future; 15 minutes cleaning, as in the API.
 INSERT INTO showtimes (movie_id, studio_id, start_at, end_at, studio_free_at, price)
 SELECT m.id, st.id, t.start_at, t.end_at, t.end_at + interval '15 minutes', v.price
 FROM (VALUES
@@ -45,11 +45,11 @@ CROSS JOIN LATERAL (
 ) AS t
 ORDER BY c.name, v.at;
 
--- Seat stock per showtime; the API does the same when a showtime is created.
+-- Seat stock per showtime, as the API creates it.
 INSERT INTO showtime_seats (showtime_id, seat_id)
 SELECT sh.id, se.id FROM showtimes sh JOIN seats se ON se.studio_id = sh.studio_id;
 
--- A paid booking (seats A1, A2 on the first showtime): shows tickets, and makes that showtime undeletable.
+-- Paid booking (A1, A2 on showtime 1): has tickets and blocks deleting that showtime.
 WITH sh AS (SELECT id, price FROM showtimes ORDER BY id LIMIT 1),
 b AS (
     INSERT INTO bookings (booking_code, user_id, showtime_id, status, total_amount, expires_at, paid_at)
@@ -71,7 +71,7 @@ pay AS (
 INSERT INTO tickets (booking_id, showtime_id, seat_id, price)
 SELECT held.booking_id, held.showtime_id, held.seat_id, sh.price FROM held, sh;
 
--- A booking waiting for payment (seat B5 on the second showtime), held for 15 minutes.
+-- Pending booking (B5 on showtime 2), held for 15 minutes.
 WITH sh AS (SELECT id, price FROM showtimes ORDER BY id OFFSET 1 LIMIT 1),
 b AS (
     INSERT INTO bookings (booking_code, user_id, showtime_id, total_amount, expires_at)

@@ -13,13 +13,13 @@ import (
 // RoleAdmin may write showtimes; every other role is read-only.
 const RoleAdmin = "admin"
 
-// Claims is the JWT payload issued at login: the user ID in "sub" and their role.
+// Claims is the JWT payload: user ID in "sub" plus role.
 type Claims struct {
 	Role string `json:"role"`
 	jwt.RegisteredClaims
 }
 
-// UserID is the numeric user ID carried in "sub", so logs record it as a number everywhere; 0 if absent.
+// UserID returns "sub" as a number, or 0.
 func (c Claims) UserID() int64 {
 	id, _ := strconv.ParseInt(c.Subject, 10, 64)
 	return id
@@ -27,12 +27,11 @@ func (c Claims) UserID() int64 {
 
 type claimsContextKey struct{}
 
-// Auth rejects a request without a valid "Authorization: Bearer <jwt>" with 401,
-// and stores the token's claims in the request context for ClaimsFrom.
+// Auth answers 401 without a valid bearer token and stores the claims for ClaimsFrom.
 func Auth(secret []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		scheme, token, _ := strings.Cut(c.GetHeader("Authorization"), " ")
-		if !strings.EqualFold(scheme, "Bearer") || token == "" { // the scheme is case-insensitive (RFC 9110)
+		if !strings.EqualFold(scheme, "Bearer") || token == "" { // scheme is case-insensitive
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"message": "missing bearer token"})
 			return
 		}

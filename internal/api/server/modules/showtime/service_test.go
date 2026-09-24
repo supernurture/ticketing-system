@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// An explicit 0 must be rejected, not replaced by the default; the handler only defaults missing parameters.
+// An explicit 0 is rejected, not defaulted.
 func TestListRejectsBadPaging(t *testing.T) {
 	service := NewService(nil)
 	tests := map[string]Filter{
@@ -28,7 +28,7 @@ func TestListRejectsBadPaging(t *testing.T) {
 	}
 }
 
-// Every case fails validation before the repository is touched, so a nil repository is enough.
+// Validation fails before the repository is used, so nil is enough.
 func TestBuildRejectsBadInput(t *testing.T) {
 	now := time.Date(2026, 9, 24, 12, 0, 0, 0, time.UTC)
 	service := &Service{now: func() time.Time { return now }}

@@ -20,7 +20,7 @@ import (
 
 const secret = "a-test-secret-that-is-at-least-32-chars"
 
-// dummyHash is the bcrypt hash of this password, so it doubles as a stored user's hash.
+// password matches dummyHash, so dummyHash doubles as a stored hash.
 const password = "Customer123!"
 
 func mockService(t *testing.T) (*Service, sqlmock.Sqlmock) {
@@ -28,7 +28,7 @@ func mockService(t *testing.T) (*Service, sqlmock.Sqlmock) {
 	return service, mock
 }
 
-// mockServiceWithLog also returns the directory the service logs to.
+// mockServiceWithLog also returns the log directory.
 func mockServiceWithLog(t *testing.T) (*Service, sqlmock.Sqlmock, string) {
 	t.Helper()
 	sqlDB, mock, err := sqlmock.New()
@@ -54,7 +54,7 @@ func mockServiceWithLog(t *testing.T) (*Service, sqlmock.Sqlmock, string) {
 	return NewService(NewRepository(db), []byte(secret), time.Hour, log), mock, logDir
 }
 
-// loginFailedLine returns the "login failed" line the service wrote to logDir.
+// loginFailedLine returns the "login failed" log line.
 func loginFailedLine(t *testing.T, logDir string) string {
 	t.Helper()
 	files, _ := filepath.Glob(filepath.Join(logDir, "test", "*.log"))
@@ -86,7 +86,7 @@ func TestLoginIssuesATokenForTheRightPassword(t *testing.T) {
 	service, mock := mockService(t)
 	expectUser(mock, "customer@mkp.test", true)
 
-	// Mixed case and spaces are normalised to the stored lower-case email.
+	// Email is trimmed and lower-cased before lookup.
 	token, err := service.Login(context.Background(), "  Customer@MKP.test ", password)
 	if err != nil {
 		t.Fatalf("Login: %v", err)
@@ -106,7 +106,7 @@ func TestLoginIssuesATokenForTheRightPassword(t *testing.T) {
 	}
 }
 
-// The caller gets the same error for both failures; only the log tells them apart.
+// Same error for both failures; only the log tells them apart.
 func TestLoginRejectsWrongPasswordAndUnknownEmailAlike(t *testing.T) {
 	tests := map[string]struct {
 		email, password string
