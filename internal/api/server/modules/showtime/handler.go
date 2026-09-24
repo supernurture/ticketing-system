@@ -6,14 +6,16 @@ import (
 
 	contract "ticketing-system/internal/api/server/oapicodegen/showtime"
 	"ticketing-system/internal/middleware"
+	"ticketing-system/pkg/logger"
 )
 
 type Handler struct {
 	service *Service
+	log     *logger.Logger
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, log *logger.Logger) *Handler {
+	return &Handler{service: service, log: log}
 }
 
 var _ contract.StrictServerInterface = (*Handler)(nil)
@@ -89,6 +91,7 @@ func (h *Handler) CreateShowtime(
 	if err != nil {
 		return nil, err
 	}
+	h.audit(ctx, "showtime created", auditFields(row))
 	return contract.CreateShowtime201JSONResponse(toContract(row)), nil
 }
 
@@ -116,6 +119,7 @@ func (h *Handler) UpdateShowtime(
 	if err != nil {
 		return nil, err
 	}
+	h.audit(ctx, "showtime updated", auditFields(row))
 	return contract.UpdateShowtime200JSONResponse(toContract(row)), nil
 }
 
@@ -137,11 +141,31 @@ func (h *Handler) DeleteShowtime(
 	if err != nil {
 		return nil, err
 	}
+	h.audit(ctx, "showtime deleted", map[string]any{"showtime_id": request.Id})
 	return contract.DeleteShowtime204Response{}, nil
 }
 
 func isAdmin(ctx context.Context) bool {
 	return middleware.ClaimsFrom(ctx).Role == middleware.RoleAdmin
+}
+
+// audit logs an admin change with the request ID and the admin's user ID, so any change to a showtime
+// can be traced to who made it and matched with the access-log line of the same request.
+func (h *Handler) audit(ctx context.Context, msg string, fields map[string]any) {
+	fields["request_id"] = middleware.RequestIDFrom(ctx)
+	fields["user_id"] = middleware.ClaimsFrom(ctx).Subject
+	h.log.Info(msg, fields)
+}
+
+// auditFields records the values a showtime was saved with.
+func auditFields(row Showtime) map[string]any {
+	return map[string]any{
+		"showtime_id": row.ID,
+		"movie_id":    row.MovieID,
+		"studio_id":   row.StudioID,
+		"start_at":    row.StartAt,
+		"price":       row.Price,
+	}
 }
 
 func asValidation(err error) (string, bool) {

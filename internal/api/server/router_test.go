@@ -3,6 +3,8 @@ package server
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -184,6 +186,83 @@ func TestLoginRejectsBadBodies(t *testing.T) {
 				t.Errorf("status = %d, want %d: %s", rec.Code, tc.want, rec.Body)
 			}
 		})
+	}
+}
+
+// Failed logins and admin changes are written to the application log with the caller's request ID,
+// so they can be matched with the access-log line of the same request.
+func TestFailedLoginAndAdminChangeAreLogged(t *testing.T) {
+	logDir := t.TempDir()
+	log, err := logger.New(logger.Config{ServiceName: "test", Path: logDir})
+	if err != nil {
+		t.Fatalf("logger.New: %v", err)
+	}
+	t.Cleanup(func() { _ = log.Close() })
+	deps, mock := withPostgres(t, &container.Container{Logger: log})
+	router := newTestRouter(t, testConfig(), deps)
+
+	send := func(method, path, requestID, bearer, body string) int {
+		req := httptest.NewRequest(method, path, strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Request-ID", requestID)
+		if bearer != "" {
+			req.Header.Set("Authorization", "Bearer "+bearer)
+		}
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		return rec.Code
+	}
+
+	mock.ExpectQuery(`SELECT \* FROM "users"`).
+		WillReturnRows(sqlmock.NewRows([]string{"id", "email", "password_hash", "role"}))
+	if code := send(http.MethodPost, "/api/v1/auth/login", "req-login-1", "",
+		`{"email":" Nobody@MKP.test ","password":"guess-123"}`); code != http.StatusUnauthorized {
+		t.Fatalf("login status = %d, want 401", code)
+	}
+
+	mock.ExpectBegin()
+	mock.ExpectExec(`DELETE FROM "showtimes"`).WillReturnResult(sqlmock.NewResult(0, 1))
+	mock.ExpectCommit()
+	if code := send(http.MethodDelete, "/api/v1/showtimes/9", "req-delete-1",
+		token(t, middleware.RoleAdmin), ""); code != http.StatusNoContent {
+		t.Fatalf("delete status = %d, want 204", code)
+	}
+
+	files, _ := filepath.Glob(filepath.Join(logDir, "test", "*.log"))
+	var logged strings.Builder
+	for _, name := range files {
+		contents, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatalf("read %s: %v", name, err)
+		}
+		logged.Write(contents)
+	}
+	out := logged.String()
+
+	// The access log carries the request ID too, so each audit line is checked on its own.
+	lineWith := func(msg string) string {
+		for _, line := range strings.Split(out, "\n") {
+			if strings.Contains(line, `"`+msg+`"`) {
+				return line
+			}
+		}
+		t.Fatalf("no %q line in the log\n%s", msg, out)
+		return ""
+	}
+	checks := map[string][]string{
+		"login failed":     {`"request_id":"req-login-1"`, `"email":"nobody@mkp.test"`},
+		"showtime deleted": {`"request_id":"req-delete-1"`, `"user_id":"1"`, `"showtime_id":9`},
+	}
+	for msg, wants := range checks {
+		line := lineWith(msg)
+		for _, want := range wants {
+			if !strings.Contains(line, want) {
+				t.Errorf("%q line is missing %s: %s", msg, want, line)
+			}
+		}
+	}
+	if strings.Contains(out, "guess-123") {
+		t.Error("the attempted password was written to the log")
 	}
 }
 

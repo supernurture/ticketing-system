@@ -49,13 +49,14 @@ func register(router gin.IRouter, cfg *config.Config, deps *container.Container)
 
 	authcontract.RegisterHandlersWithOptions(router,
 		authcontract.NewStrictHandlerWithOptions(
-			auth.NewHandler(auth.NewService(auth.NewRepository(db), secret, cfg.Auth.TokenTTL)), nil, authOptions),
+			auth.NewHandler(auth.NewService(auth.NewRepository(db), secret, cfg.Auth.TokenTTL), deps.Logger),
+			nil, authOptions),
 		authcontract.GinServerOptions{ErrorHandler: invalidParam})
 
 	// Auth runs as group middleware, ahead of parameter parsing, so an anonymous caller always gets 401.
 	showtimecontract.RegisterHandlersWithOptions(router.Group("", middleware.Auth(secret)),
 		showtimecontract.NewStrictHandlerWithOptions(
-			showtime.NewHandler(showtime.NewService(showtime.NewRepository(db))), nil, showtimeOptions),
+			showtime.NewHandler(showtime.NewService(showtime.NewRepository(db)), deps.Logger), nil, showtimeOptions),
 		showtimecontract.GinServerOptions{ErrorHandler: invalidParam})
 }
 
