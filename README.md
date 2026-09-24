@@ -7,7 +7,7 @@ Platform pembelian tiket bioskop online: customer bisa membeli tiket kapan pun t
 | Soal | Jawaban |
 |---|---|
 | A. System Design | Topologi [`docs/topology.jpg`](docs/topology.jpg), flowchart untuk orang awam [`docs/flowchart.jpg`](docs/flowchart.jpg) (sumber `.drawio` di folder yang sama), penjelasan di [`docs/system-design.md`](docs/system-design.md) |
-| B. Database Design | ERD [`docs/erd.jpg`](docs/erd.jpg), detail per tabel [`docs/db/`](docs/db/README.md), script [`db/schema.sql`](db/schema.sql) + data contoh [`db/seed.sql`](db/seed.sql) |
+| B. Database Design | ERD [`docs/erd.jpg`](docs/erd.jpg), script (tipe data, constraint, dan komentar per kolom) [`db/schema.sql`](db/schema.sql) + data contoh [`db/seed.sql`](db/seed.sql) |
 | C. Skill Test (Go) | API Login + CRUD jadwal tayang, Postman: [`docs/postman/ticketing-system.postman_collection.json`](docs/postman/ticketing-system.postman_collection.json) |
 
 ## Menjalankan

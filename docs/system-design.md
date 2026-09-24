@@ -8,7 +8,7 @@
 
 ![Flowchart pembelian tiket](flowchart.jpg)
 
-Sumber diagram: [`topology.drawio`](topology.drawio), [`flowchart.drawio`](flowchart.drawio) (buka di [draw.io](https://app.diagrams.net)). ERD: [`erd.jpg`](erd.jpg), detail per tabel: [`db/`](db/README.md).
+Sumber diagram: [`topology.drawio`](topology.drawio), [`flowchart.drawio`](flowchart.drawio) (buka di [draw.io](https://app.diagrams.net)). ERD: [`erd.jpg`](erd.jpg); detail kolom dan constraint ada di [`db/schema.sql`](../db/schema.sql).
 
 ## 1. Pemilihan kursi (aman dari rebutan & tetap cepat)
 
