@@ -1,0 +1,202 @@
+{
+  "info": {
+    "name": "Ticketing System (MKP Backend Test)",
+    "description": "Run top to bottom (Collection Runner works). Logins store their token in collection variables; the create request stores the new showtime id. Seed data comes from db/seed.sql.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "adminToken", "value": "" },
+    { "key": "customerToken", "value": "" },
+    { "key": "showtimeId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login admin",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('adminToken', pm.response.json().access_token);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@mkp.test\",\n  \"password\": \"Admin123!\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "Login customer",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "pm.collectionVariables.set('customerToken', pm.response.json().access_token);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"customer@mkp.test\",\n  \"password\": \"Customer123!\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        },
+        {
+          "name": "Login wrong password (401)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('401', () => pm.response.to.have.status(401));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@mkp.test\",\n  \"password\": \"wrong\"\n}" },
+            "url": "{{baseUrl}}/api/v1/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Showtimes",
+      "item": [
+        {
+          "name": "List showtimes (customer)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/showtimes?cinema_id=1&page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "showtimes"],
+              "query": [
+                { "key": "cinema_id", "value": "1" },
+                { "key": "movie_id", "value": "1", "disabled": true },
+                { "key": "from", "value": "2026-01-01T00:00:00%2B07:00", "description": "Encode + as %2B", "disabled": true },
+                { "key": "to", "value": "2099-01-01T00:00:00%2B07:00", "description": "Encode + as %2B", "disabled": true },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List showtimes without token (401)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('401', () => pm.response.to.have.status(401));"
+          ] } }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/v1/showtimes" }
+        },
+        {
+          "name": "Get showtime",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": "{{baseUrl}}/api/v1/showtimes/1"
+          }
+        },
+        {
+          "name": "Create showtime (admin)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('201', () => pm.response.to.have.status(201));",
+            "pm.collectionVariables.set('showtimeId', pm.response.json().id);"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"movie_id\": 1,\n  \"studio_id\": 2,\n  \"start_at\": \"2099-12-01T19:00:00+07:00\",\n  \"price\": 50000\n}" },
+            "url": "{{baseUrl}}/api/v1/showtimes"
+          }
+        },
+        {
+          "name": "Create overlapping showtime (409)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('409', () => pm.response.to.have.status(409));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"movie_id\": 2,\n  \"studio_id\": 2,\n  \"start_at\": \"2099-12-01T20:00:00+07:00\",\n  \"price\": 45000\n}" },
+            "url": "{{baseUrl}}/api/v1/showtimes"
+          }
+        },
+        {
+          "name": "Create showtime as customer (403)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('403', () => pm.response.to.have.status(403));"
+          ] } }],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"movie_id\": 1,\n  \"studio_id\": 2,\n  \"start_at\": \"2099-12-02T19:00:00+07:00\",\n  \"price\": 50000\n}" },
+            "url": "{{baseUrl}}/api/v1/showtimes"
+          }
+        },
+        {
+          "name": "Update showtime (admin)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));"
+          ] } }],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"movie_id\": 2,\n  \"studio_id\": 3,\n  \"start_at\": \"2099-12-01T21:00:00+07:00\",\n  \"price\": 60000\n}" },
+            "url": "{{baseUrl}}/api/v1/showtimes/{{showtimeId}}"
+          }
+        },
+        {
+          "name": "Update showtime that has bookings (409)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('409', () => pm.response.to.have.status(409));"
+          ] } }],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"movie_id\": 1,\n  \"studio_id\": 1,\n  \"start_at\": \"2099-12-05T10:00:00+07:00\",\n  \"price\": 50000\n}" },
+            "url": "{{baseUrl}}/api/v1/showtimes/1"
+          }
+        },
+        {
+          "name": "Delete showtime (admin)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('204', () => pm.response.to.have.status(204));"
+          ] } }],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/v1/showtimes/{{showtimeId}}"
+          }
+        },
+        {
+          "name": "Delete showtime that has bookings (409)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('409', () => pm.response.to.have.status(409));"
+          ] } }],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/v1/showtimes/1"
+          }
+        }
+      ]
+    }
+  ]
+}
