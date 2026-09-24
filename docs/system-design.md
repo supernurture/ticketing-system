@@ -89,4 +89,5 @@ Lewat API, jadwal tidak bisa **diubah** selama masih ada booking yang hidup (lun
 - Batas jumlah kursi per booking dan anti penimbunan kursi.
 - Cache denah kursi (mis. Redis) jika read replica tidak cukup.
 - Rate limit login di aplikasi (saat ini baru di WAF pada topologi) untuk menahan brute force password.
+- Refresh token: access token dibuat pendek (mis. 15 menit) dengan refresh token yang disimpan di database (hash) dan dirotasi setiap dipakai, plus endpoint logout. Saat ini hanya ada access token 1 jam, jadi user login ulang tiap jam dan token tidak bisa dicabut sebelum kedaluwarsa.
 - `/health` yang juga mengecek koneksi database.

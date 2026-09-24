@@ -70,7 +70,8 @@ paths:
         - showtime
       summary: Create a showtime (admin)
       description: >-
-        end_at is computed from the movie duration (the studio then needs 15 minutes of cleaning before the next showtime), and the studio's seats become this showtime's seat stock.
+        end_at is computed from the movie duration (the studio then needs 15 minutes of cleaning before the next showtime),
+        and the studio's seats become this showtime's seat stock; a studio with no seats yet is refused with 400.
       requestBody:
         required: true
         content:
@@ -124,6 +125,7 @@ paths:
       description: >-
         Refused with 409 while the showtime has a paid booking or one still within its payment deadline,
         so no customer's ticket changes under them. Expired unpaid bookings do not block it.
+        Moving it to a studio with no seats yet is refused with 400.
       requestBody:
         required: true
         content:
