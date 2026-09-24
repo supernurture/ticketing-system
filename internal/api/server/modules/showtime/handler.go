@@ -153,7 +153,7 @@ func isAdmin(ctx context.Context) bool {
 // can be traced to who made it and matched with the access-log line of the same request.
 func (h *Handler) audit(ctx context.Context, msg string, fields map[string]any) {
 	fields["request_id"] = middleware.RequestIDFrom(ctx)
-	fields["user_id"] = middleware.ClaimsFrom(ctx).Subject
+	fields["user_id"] = middleware.ClaimsFrom(ctx).UserID()
 	h.log.Info(msg, fields)
 }
 

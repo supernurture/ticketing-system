@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -16,6 +17,12 @@ const RoleAdmin = "admin"
 type Claims struct {
 	Role string `json:"role"`
 	jwt.RegisteredClaims
+}
+
+// UserID is the numeric user ID carried in "sub", so logs record it as a number everywhere; 0 if absent.
+func (c Claims) UserID() int64 {
+	id, _ := strconv.ParseInt(c.Subject, 10, 64)
+	return id
 }
 
 type claimsContextKey struct{}
