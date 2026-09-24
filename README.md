@@ -8,7 +8,7 @@ Platform pembelian tiket bioskop online: customer bisa membeli tiket kapan pun t
 |---|---|
 | A. System Design | Topologi [`docs/topology.jpg`](docs/topology.jpg), flowchart untuk orang awam [`docs/flowchart.jpg`](docs/flowchart.jpg) (sumber `.drawio` di folder yang sama), penjelasan di [`docs/system-design.md`](docs/system-design.md) |
 | B. Database Design | ERD [`docs/erd.jpg`](docs/erd.jpg), detail per tabel [`docs/db/`](docs/db/README.md), script [`db/schema.sql`](db/schema.sql) + data contoh [`db/seed.sql`](db/seed.sql) |
-| C. Skill Test (Go) | API Login + CRUD jadwal tayang, Postman: [`postman/ticketing-system.postman_collection.json`](postman/ticketing-system.postman_collection.json) |
+| C. Skill Test (Go) | API Login + CRUD jadwal tayang, Postman: [`docs/postman/ticketing-system.postman_collection.json`](docs/postman/ticketing-system.postman_collection.json) |
 
 ## Menjalankan
 
@@ -90,11 +90,10 @@ api/server/specs/     OpenAPI spec per modul (auth, showtime, health)
 cmd/api/              entry point
 configs/              contoh konfigurasi
 db/                   schema.sql, seed.sql
-docs/                 diagram, ERD, penjelasan system design
+docs/                 diagram, ERD, penjelasan system design, Postman collection (docs/postman)
 internal/api/server/  router, kode hasil generate, modul auth & showtime (handler → service → repository)
 internal/middleware/  request ID, log, recovery, timeout, CORS, auth JWT
 pkg/                  database (GORM + Postgres), logger
-postman/              Postman collection
 ```
 
 Dibangun dari template [supernurture/go-template](https://github.com/supernurture/go-template) (layout mengikuti [golang-standards/project-layout](https://github.com/golang-standards/project-layout)); bagian yang tidak dipakai (Redis, SQL Server, HTTP client, Docker, modul contoh) sudah dihapus.
