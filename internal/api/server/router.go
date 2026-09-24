@@ -49,7 +49,7 @@ func register(router gin.IRouter, cfg *config.Config, deps *container.Container)
 
 	authcontract.RegisterHandlersWithOptions(router,
 		authcontract.NewStrictHandlerWithOptions(
-			auth.NewHandler(auth.NewService(auth.NewRepository(db), secret, cfg.Auth.TokenTTL), deps.Logger),
+			auth.NewHandler(auth.NewService(auth.NewRepository(db), secret, cfg.Auth.TokenTTL, deps.Logger)),
 			nil, authOptions),
 		authcontract.GinServerOptions{ErrorHandler: invalidParam})
 

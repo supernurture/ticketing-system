@@ -250,7 +250,7 @@ func TestFailedLoginAndAdminChangeAreLogged(t *testing.T) {
 		return ""
 	}
 	checks := map[string][]string{
-		"login failed":     {`"request_id":"req-login-1"`, `"email":"nobody@mkp.test"`},
+		"login failed":     {`"request_id":"req-login-1"`, `"email":"n***@mkp.test"`, `"reason":"unknown_email"`},
 		"showtime deleted": {`"request_id":"req-delete-1"`, `"user_id":"1"`, `"showtime_id":9`},
 	}
 	for msg, wants := range checks {

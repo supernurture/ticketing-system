@@ -12,6 +12,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"ticketing-system/internal/middleware"
+	"ticketing-system/internal/pkg/util"
+	"ticketing-system/pkg/logger"
 )
 
 // ErrInvalidCredentials is returned for an unknown email and a wrong password alike,
@@ -28,22 +30,26 @@ type Service struct {
 	users  *Repository
 	secret []byte
 	ttl    time.Duration
+	log    *logger.Logger
 }
 
-func NewService(users *Repository, secret []byte, ttl time.Duration) *Service {
-	return &Service{users: users, secret: secret, ttl: ttl}
+func NewService(users *Repository, secret []byte, ttl time.Duration, log *logger.Logger) *Service {
+	return &Service{users: users, secret: secret, ttl: ttl, log: log}
 }
 
 func (s *Service) Login(ctx context.Context, email, password string) (Token, error) {
-	user, found, err := s.users.FindByEmail(ctx, strings.ToLower(strings.TrimSpace(email)))
+	email = strings.ToLower(strings.TrimSpace(email))
+	user, found, err := s.users.FindByEmail(ctx, email)
 	if err != nil {
 		return Token{}, fmt.Errorf("find user: %w", err)
 	}
 	if !found {
 		_ = bcrypt.CompareHashAndPassword([]byte(dummyHash), []byte(password))
+		s.loginFailed(ctx, email, 0, reasonUnknownEmail)
 		return Token{}, ErrInvalidCredentials
 	}
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)) != nil {
+		s.loginFailed(ctx, email, user.ID, reasonWrongPassword)
 		return Token{}, ErrInvalidCredentials
 	}
 
@@ -61,4 +67,19 @@ func (s *Service) Login(ctx context.Context, email, password string) (Token, err
 	}
 
 	return Token{AccessToken: signed, ExpiresIn: s.ttl, Role: user.Role}, nil
+}
+
+// loginFailed logs why a login failed, which the caller is never told: repeated wrong_password for one
+// user_id is password guessing on that account, many unknown_email is someone probing for accounts.
+// The email is masked and the password is never logged.
+func (s *Service) loginFailed(ctx context.Context, email string, userID int64, reason string) {
+	fields := map[string]any{
+		"request_id": middleware.RequestIDFrom(ctx),
+		"email":      util.MaskEmail(email),
+		"reason":     reason,
+	}
+	if userID != 0 {
+		fields["user_id"] = userID
+	}
+	s.log.Warn("login failed", fields)
 }

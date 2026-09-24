@@ -3,6 +3,9 @@ package auth
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -12,6 +15,7 @@ import (
 	"gorm.io/gorm"
 
 	"ticketing-system/internal/middleware"
+	"ticketing-system/pkg/logger"
 )
 
 const secret = "a-test-secret-that-is-at-least-32-chars"
@@ -20,6 +24,12 @@ const secret = "a-test-secret-that-is-at-least-32-chars"
 const password = "Customer123!"
 
 func mockService(t *testing.T) (*Service, sqlmock.Sqlmock) {
+	service, mock, _ := mockServiceWithLog(t)
+	return service, mock
+}
+
+// mockServiceWithLog also returns the directory the service logs to.
+func mockServiceWithLog(t *testing.T) (*Service, sqlmock.Sqlmock, string) {
 	t.Helper()
 	sqlDB, mock, err := sqlmock.New()
 	if err != nil {
@@ -34,7 +44,33 @@ func mockService(t *testing.T) (*Service, sqlmock.Sqlmock) {
 	if err != nil {
 		t.Fatalf("gorm.Open: %v", err)
 	}
-	return NewService(NewRepository(db), []byte(secret), time.Hour), mock
+	logDir := t.TempDir()
+	log, err := logger.New(logger.Config{ServiceName: "test", Path: logDir})
+	if err != nil {
+		t.Fatalf("logger.New: %v", err)
+	}
+	t.Cleanup(func() { _ = log.Close() })
+
+	return NewService(NewRepository(db), []byte(secret), time.Hour, log), mock, logDir
+}
+
+// loginFailedLine returns the "login failed" line the service wrote to logDir.
+func loginFailedLine(t *testing.T, logDir string) string {
+	t.Helper()
+	files, _ := filepath.Glob(filepath.Join(logDir, "test", "*.log"))
+	for _, name := range files {
+		contents, err := os.ReadFile(name)
+		if err != nil {
+			t.Fatalf("read %s: %v", name, err)
+		}
+		for _, line := range strings.Split(string(contents), "\n") {
+			if strings.Contains(line, `"login failed"`) {
+				return line
+			}
+		}
+	}
+	t.Fatal("no login failed line in the log")
+	return ""
 }
 
 func expectUser(mock sqlmock.Sqlmock, email string, found bool) {
@@ -69,26 +105,48 @@ func TestLoginIssuesATokenForTheRightPassword(t *testing.T) {
 	}
 }
 
+// The caller gets the same error for both failures; only the log tells them apart.
 func TestLoginRejectsWrongPasswordAndUnknownEmailAlike(t *testing.T) {
-	t.Run("wrong password", func(t *testing.T) {
-		service, mock := mockService(t)
-		expectUser(mock, "customer@mkp.test", true)
+	tests := map[string]struct {
+		email, password string
+		found           bool
+		wantLog         []string
+		notInLog        []string
+	}{
+		"wrong password": {
+			email: "customer@mkp.test", password: "guess-123", found: true,
+			wantLog:  []string{`"reason":"wrong_password"`, `"user_id":7`, `"email":"c***@mkp.test"`},
+			notInLog: []string{"customer@mkp.test", "guess-123"},
+		},
+		"unknown email": {
+			email: "nobody@mkp.test", password: password, found: false,
+			wantLog:  []string{`"reason":"unknown_email"`, `"email":"n***@mkp.test"`},
+			notInLog: []string{"nobody@mkp.test", password, `"user_id"`},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			service, mock, logDir := mockServiceWithLog(t)
+			expectUser(mock, tc.email, tc.found)
 
-		_, err := service.Login(context.Background(), "customer@mkp.test", "wrong")
-		if !errors.Is(err, ErrInvalidCredentials) {
-			t.Errorf("error = %v, want ErrInvalidCredentials", err)
-		}
-	})
+			_, err := service.Login(context.Background(), tc.email, tc.password)
+			if !errors.Is(err, ErrInvalidCredentials) {
+				t.Errorf("error = %v, want ErrInvalidCredentials", err)
+			}
 
-	t.Run("unknown email", func(t *testing.T) {
-		service, mock := mockService(t)
-		expectUser(mock, "nobody@mkp.test", false)
-
-		_, err := service.Login(context.Background(), "nobody@mkp.test", password)
-		if !errors.Is(err, ErrInvalidCredentials) {
-			t.Errorf("error = %v, want ErrInvalidCredentials", err)
-		}
-	})
+			line := loginFailedLine(t, logDir)
+			for _, want := range tc.wantLog {
+				if !strings.Contains(line, want) {
+					t.Errorf("log line is missing %s: %s", want, line)
+				}
+			}
+			for _, leak := range tc.notInLog {
+				if strings.Contains(line, leak) {
+					t.Errorf("log line contains %s: %s", leak, line)
+				}
+			}
+		})
+	}
 }
 
 func TestLoginSurfacesDatabaseFailure(t *testing.T) {
