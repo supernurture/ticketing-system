@@ -30,6 +30,9 @@ server:
   port: %d
   timeout: 5s
   trusted_proxies: []
+auth:
+  jwt_secret: a-test-secret-that-is-at-least-32-chars
+  token_ttl: 1h
 logger:
   level: INFO
 `, port)

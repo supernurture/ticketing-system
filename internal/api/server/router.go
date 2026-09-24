@@ -8,7 +8,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"ticketing-system/internal/api/server/modules/auth"
 	"ticketing-system/internal/api/server/modules/health"
+	authcontract "ticketing-system/internal/api/server/oapicodegen/auth"
 	healthcontract "ticketing-system/internal/api/server/oapicodegen/health"
 	"ticketing-system/internal/config"
 	"ticketing-system/internal/container"
@@ -28,20 +30,34 @@ func NewRouter(cfg *config.Config, deps *container.Container) (*gin.Engine, erro
 	router.ContextWithFallback = true
 	router.Use(middleware.Default(cfg, deps.Logger)...)
 
-	register(router)
+	register(router, cfg, deps)
 	return router, nil
 }
 
-func register(router gin.IRouter) {
+func register(router gin.IRouter, cfg *config.Config, deps *container.Container) {
 	healthcontract.RegisterHandlersWithOptions(router,
 		healthcontract.NewStrictHandlerWithOptions(health.NewHandler(), nil, healthOptions),
 		healthcontract.GinServerOptions{ErrorHandler: invalidParam})
+
+	db := deps.Postgres["ticketing"]
+	if db == nil {
+		return
+	}
+	secret := []byte(cfg.Auth.JWTSecret)
+
+	authcontract.RegisterHandlersWithOptions(router,
+		authcontract.NewStrictHandlerWithOptions(
+			auth.NewHandler(auth.NewService(auth.NewRepository(db), secret, cfg.Auth.TokenTTL)), nil, authOptions),
+		authcontract.GinServerOptions{ErrorHandler: invalidParam})
 }
 
 // The generated defaults write err.Error() into the body, leaking internals such as database errors,
 // and answer {"msg": ...} where the spec's Error, Recovery and Timeout all use "message".
 var (
 	healthOptions = healthcontract.StrictGinServerOptions{
+		RequestErrorHandlerFunc: badRequest, HandlerErrorFunc: internalError, ResponseErrorHandlerFunc: internalError,
+	}
+	authOptions = authcontract.StrictGinServerOptions{
 		RequestErrorHandlerFunc: badRequest, HandlerErrorFunc: internalError, ResponseErrorHandlerFunc: internalError,
 	}
 )

@@ -20,6 +20,9 @@ server:
   port: 8080
   timeout: 40s
   trusted_proxies: ["10.0.0.0/8"]
+auth:
+  jwt_secret: a-test-secret-that-is-at-least-32-chars
+  token_ttl: 1h
 logger:
   level: INFO
 `
@@ -185,6 +188,13 @@ func TestLoadErrors(t *testing.T) {
 			name:  "fails validation",
 			files: map[string]string{configFile(): "app:\n  name: template\n"},
 			want:  "invalid config",
+		},
+		{
+			name: "jwt secret too short",
+			files: map[string]string{
+				configFile(): strings.Replace(validConfig, "a-test-secret-that-is-at-least-32-chars", "short", 1),
+			},
+			want: "JWTSecret",
 		},
 	}
 

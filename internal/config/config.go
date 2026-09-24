@@ -17,7 +17,14 @@ type Config struct {
 	App       App       `mapstructure:"app"`
 	Server    Server    `mapstructure:"server"`
 	Databases Databases `mapstructure:"databases"`
+	Auth      Auth      `mapstructure:"auth"`
 	Logger    Logger    `mapstructure:"logger"`
+}
+
+// Auth holds the JWT signing secret and how long an issued token stays valid.
+type Auth struct {
+	JWTSecret string        `mapstructure:"jwt_secret" validate:"required,min=32"`
+	TokenTTL  time.Duration `mapstructure:"token_ttl"  validate:"required,gt=0"`
 }
 
 // App holds application identity and environment.
