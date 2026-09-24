@@ -73,7 +73,35 @@ Kode status: `400` input salah, `401` token tidak ada/invalid/kedaluwarsa, `403`
 
 Filter `from`/`to` memakai format RFC 3339. Tanda `+` pada zona waktu harus ditulis `%2B` di URL, misalnya `from=2026-01-01T00:00:00%2B07:00`, karena `+` di URL dibaca sebagai spasi.
 
-Kontrak lengkap ada di [`api/server/specs/`](api/server/specs) (OpenAPI). Kode server di-generate dengan `make oapicodegen`.
+### OpenAPI (spec-first)
+
+API ditulis **kontrak dulu, kode belakangan**. Satu file OpenAPI 3.0 per modul ada di [`api/server/specs/`](api/server/specs) (`auth.yaml`, `showtime.yaml`, `health.yaml`). Dari file itu, `make oapicodegen` (lewat [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen), mode `strict-server`) meng-generate route Gin, model request/response, dan interface handler ke `internal/api/server/oapicodegen/`.
+
+Kenapa pendekatan ini:
+- **Dokumentasi tidak bisa basi.** Route, parameter, dan bentuk respons berasal dari spec. Kalau spec berubah dan handler belum menyesuaikan, kode tidak bisa di-compile.
+- **Respons bertipe.** Handler mengembalikan tipe respons per status (mis. `DeleteShowtime204Response`, `DeleteShowtime409JSONResponse`), jadi status atau body yang tidak ada di kontrak tidak bisa terkirim.
+- **Error handler bawaan diganti** supaya pesan error internal tidak bocor ke klien dan semua error memakai format `{"message": ...}` yang sama.
+
+Untuk melihat dokumentasinya dalam tampilan Swagger UI: buka [editor.swagger.io](https://editor.swagger.io), lalu **File → Import file** dan pilih salah satu file di `api/server/specs/`.
+
+## Arsitektur
+
+```mermaid
+flowchart LR
+    C[Client] --> MW[Middleware<br/>request ID · access log · recovery<br/>timeout · security headers · CORS · body limit]
+    MW --> G[Generated router<br/>oapi-codegen]
+    G -->|/showtimes| A[JWT auth]
+    A --> H[Handler]
+    G -->|/auth, /health| H
+    H --> S[Service<br/>aturan bisnis]
+    S --> R[Repository<br/>raw SQL]
+    R --> DB[(PostgreSQL<br/>constraint + EXCLUDE)]
+```
+
+- **Handler → Service → Repository per modul** (`internal/api/server/modules/<modul>`). Handler mengurus HTTP dan hak akses (admin atau bukan), service memegang aturan bisnis (hitung `end_at`, cek booking), repository hanya berisi SQL.
+- **Aturan penting dijaga di database**, bukan hanya di kode: jadwal bentrok ditolak constraint `EXCLUDE`, tiket ganda ditolak `UNIQUE`. Aturannya tetap berlaku walaupun API dijalankan di banyak server (lihat [Race condition](#race-condition)).
+- **Dependency dirakit sekali** di `internal/container` (logger, koneksi Postgres) lalu disuntikkan lewat constructor. Tidak ada variabel global, dan semua koneksi ditutup berurutan saat shutdown.
+- **Dapat dites tanpa database**: koneksi DB di-mock dengan `sqlmock`, jadi `go test ./...` bisa jalan di mesin mana pun.
 
 ## Race condition
 
