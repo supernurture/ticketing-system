@@ -27,14 +27,14 @@ cp configs/config.example.yaml configs/config.yaml
 cp .env.example .env
 
 # 3. Jalankan API di http://localhost:8080
-go run ./cmd/api
+go run ./cmd/api       # atau: make run (butuh make + bash)
 
 # 4. Cek server sudah jalan (terminal lain)
 curl http://localhost:8080/health
 # {"condition":"Healthy"}
 ```
 
-Lalu import Postman collection dan jalankan dari atas ke bawah.
+Lalu import Postman collection dan jalankan dari atas ke bawah. Request login otomatis menyimpan token ke collection variable `adminToken` / `customerToken`, dan request lain sudah memakai `Bearer {{adminToken}}` / `Bearer {{customerToken}}`, jadi token tidak perlu disalin manual. Token berlaku 1 jam; jika dapat `401`, jalankan ulang request login.
 
 ### Reset database
 
@@ -108,7 +108,7 @@ internal/middleware/  request ID, log, recovery, timeout, CORS, auth JWT
 pkg/                  database (GORM + Postgres), logger
 ```
 
-Dibangun dari template [supernurture/go-template](https://github.com/supernurture/go-template) (layout mengikuti [golang-standards/project-layout](https://github.com/golang-standards/project-layout)); bagian yang tidak dipakai (Redis, SQL Server, HTTP client, Docker, modul contoh) sudah dihapus.
+Dibangun dari template [supernurture/go-template](https://github.com/supernurture/go-template) (layout mengikuti [golang-standards/project-layout](https://github.com/golang-standards/project-layout)).
 
 ## Pengembangan
 
