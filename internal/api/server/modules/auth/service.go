@@ -18,9 +18,6 @@ import (
 // so a caller cannot probe which emails are registered.
 var ErrInvalidCredentials = errors.New("invalid email or password")
 
-// dummyHash is compared against when the email is unknown, so both failures take the same time.
-var dummyHash = []byte("$2a$10$CHItcZdGTaN.9ZYG1ip71uSOWV2Y37Q.UnoDB8ztGxT5fC17mKYCy")
-
 type Token struct {
 	AccessToken string
 	ExpiresIn   time.Duration
@@ -43,7 +40,7 @@ func (s *Service) Login(ctx context.Context, email, password string) (Token, err
 		return Token{}, fmt.Errorf("find user: %w", err)
 	}
 	if !found {
-		_ = bcrypt.CompareHashAndPassword(dummyHash, []byte(password))
+		_ = bcrypt.CompareHashAndPassword([]byte(dummyHash), []byte(password))
 		return Token{}, ErrInvalidCredentials
 	}
 	if bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)) != nil {

@@ -37,7 +37,7 @@ func (h *Handler) Login(
 
 	return authcontract.Login200JSONResponse{
 		AccessToken: token.AccessToken,
-		TokenType:   "Bearer",
+		TokenType:   tokenType,
 		ExpiresIn:   int(token.ExpiresIn.Seconds()),
 		Role:        authcontract.LoginResponseRole(token.Role),
 	}, nil

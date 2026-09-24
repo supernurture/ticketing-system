@@ -40,7 +40,7 @@ func mockService(t *testing.T) (*Service, sqlmock.Sqlmock) {
 func expectUser(mock sqlmock.Sqlmock, email string, found bool) {
 	rows := sqlmock.NewRows([]string{"id", "email", "password_hash", "role"})
 	if found {
-		rows.AddRow(int64(7), email, string(dummyHash), "customer")
+		rows.AddRow(int64(7), email, dummyHash, "customer")
 	}
 	mock.ExpectQuery(`SELECT \* FROM "users" WHERE email = \$1`).WithArgs(email, 1).WillReturnRows(rows)
 }
