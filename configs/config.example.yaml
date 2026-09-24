@@ -24,6 +24,10 @@ databases:
       max_idle_conns: 5 # set far below max_open_conns and the pool reopens connections under load
       conn_max_lifetime: 30m # recycles connections, so a failover or rotated credential is picked up
 
+auth:
+  jwt_secret: change-me-to-a-random-string-of-32-chars-or-more # override with AUTH_JWT_SECRET
+  token_ttl: 1h
+
 logger:
   path: ./logs
   level: INFO # DEBUG, INFO, WARN, or ERROR

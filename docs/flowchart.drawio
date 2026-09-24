@@ -1,0 +1,85 @@
+<mxfile host="app.diagrams.net">
+  <diagram id="flow" name="Alur Pembelian Tiket">
+    <mxGraphModel dx="1600" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1900" pageHeight="1150" background="#FFFFFF" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="t1" value="🎬 Alur Beli Tiket Bioskop" style="text;html=1;fontSize=26;fontStyle=1;fontColor=#1F2937;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="520" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="Satu kursi hanya bisa dipegang satu customer. Kursi dikunci selama customer membayar." style="text;html=1;fontSize=14;fontColor=#6B7280;align=left;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="48" width="640" height="26" as="geometry" />
+        </mxCell>
+
+        <mxCell id="s" value="📱 Customer membuka aplikasi" style="ellipse;whiteSpace=wrap;html=1;fillColor=#1F2937;fontColor=#FFFFFF;strokeColor=none;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="100" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n2" value="Login, lalu pilih &lt;b&gt;kota, bioskop, film&lt;/b&gt; dan &lt;b&gt;jadwal tayang&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEF2FF;strokeColor=#6366F1;fontSize=14;arcSize=18;" vertex="1" parent="1">
+          <mxGeometry x="330" y="195" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n3" value="💺 Lihat denah kursi&lt;br&gt;&lt;span style=&quot;color:#6B7280;font-size:12px&quot;&gt;kursi yang sudah dipegang orang lain berwarna abu-abu&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEF2FF;strokeColor=#6366F1;fontSize=14;arcSize=18;" vertex="1" parent="1">
+          <mxGeometry x="330" y="290" width="260" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="n4" value="Pilih kursi, tekan &lt;b&gt;Pesan&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EEF2FF;strokeColor=#6366F1;fontSize=14;arcSize=18;" vertex="1" parent="1">
+          <mxGeometry x="330" y="395" width="260" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d5" value="Kursi masih&lt;br&gt;kosong?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="480" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="no5" value="😕 Kursi baru saja diambil customer lain.&lt;br&gt;Pilih kursi lain." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEE2E2;strokeColor=#DC2626;fontSize=13;arcSize=18;" vertex="1" parent="1">
+          <mxGeometry x="40" y="495" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="n6" value="🔒 Booking dibuat: &lt;b&gt;MENUNGGU PEMBAYARAN&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;kursi dikunci untuk customer ini selama 15 menit&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DBEAFE;strokeColor=#2563EB;fontSize=14;arcSize=18;" vertex="1" parent="1">
+          <mxGeometry x="310" y="615" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="d7" value="Bayar sebelum&lt;br&gt;15 menit?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=14;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="720" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="paid" value="✅ Pembayaran berhasil: &lt;b&gt;LUNAS&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;e-tiket terbit, kursi resmi milik customer&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCFCE7;strokeColor=#16A34A;fontSize=14;arcSize=18;" vertex="1" parent="1">
+          <mxGeometry x="310" y="860" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="end" value="🍿 Datang &amp;amp; nonton" style="ellipse;whiteSpace=wrap;html=1;fillColor=#1F2937;fontColor=#FFFFFF;strokeColor=none;fontSize=15;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="330" y="965" width="260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="exp" value="⌛ Booking &lt;b&gt;KEDALUWARSA&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;kursi otomatis kembali dijual ke customer lain (restok)&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#6B7280;fontSize=14;arcSize=18;" vertex="1" parent="1">
+          <mxGeometry x="660" y="735" width="270" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#374151;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="s" target="n2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#374151;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="n2" target="n3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#374151;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="n3" target="n4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#374151;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="n4" target="d5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5n" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#DC2626;strokeWidth=2;endArrow=block;endFill=1;fontSize=13;fontStyle=1;fontColor=#DC2626;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="d5" target="no5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5b" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#DC2626;strokeWidth=2;endArrow=block;endFill=1;dashed=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="no5" target="n3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e5y" value="Ya" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#16A34A;strokeWidth=2;endArrow=block;endFill=1;fontSize=13;fontStyle=1;fontColor=#16A34A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="d5" target="n6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#374151;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="n6" target="d7"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7y" value="Ya" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#16A34A;strokeWidth=2;endArrow=block;endFill=1;fontSize=13;fontStyle=1;fontColor=#16A34A;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="d7" target="paid"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e7n" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#6B7280;strokeWidth=2;endArrow=block;endFill=1;fontSize=13;fontStyle=1;fontColor=#6B7280;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="d7" target="exp"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#374151;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="1" source="paid" target="end"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="lane" value="↩️ Refund &amp;amp; Pembatalan" style="swimlane;html=1;startSize=36;fillColor=#FFF7ED;strokeColor=#EA580C;fontSize=16;fontStyle=1;fontColor=#9A3412;rounded=1;arcSize=6;swimlaneFillColor=#FFFBF5;" vertex="1" parent="1">
+          <mxGeometry x="990" y="100" width="380" height="560" as="geometry" />
+        </mxCell>
+        <mxCell id="r1" value="🏢 Bioskop membatalkan jadwal tayang&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;(misal: proyektor rusak)&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEDD5;strokeColor=#EA580C;fontSize=14;arcSize=18;" vertex="1" parent="lane">
+          <mxGeometry x="40" y="60" width="300" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="r2" value="Semua booking &lt;b&gt;LUNAS&lt;/b&gt; → &lt;b&gt;REFUND&lt;/b&gt;, tiket dibatalkan.&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;Booking yang belum dibayar ikut kedaluwarsa.&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEDD5;strokeColor=#EA580C;fontSize=14;arcSize=18;" vertex="1" parent="lane">
+          <mxGeometry x="40" y="160" width="300" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="r3" value="💸 Uang dikembalikan ke customer&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;tercatat di tabel refunds&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DCFCE7;strokeColor=#16A34A;fontSize=14;arcSize=18;" vertex="1" parent="lane">
+          <mxGeometry x="40" y="265" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r4" value="🎟️ Satu tiket lunas di-refund&lt;br&gt;&lt;span style=&quot;font-size:12px&quot;&gt;(jadwal tetap berjalan)&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEDD5;strokeColor=#EA580C;fontSize=14;arcSize=18;" vertex="1" parent="lane">
+          <mxGeometry x="40" y="370" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="r5" value="Tiket dibatalkan, uang kembali,&lt;br&gt;&lt;b&gt;kursi kembali dijual (restok)&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#6B7280;fontSize=14;arcSize=18;" vertex="1" parent="lane">
+          <mxGeometry x="40" y="465" width="300" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="re1" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#EA580C;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="lane" source="r1" target="r2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re2" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#EA580C;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="lane" source="r2" target="r3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="re3" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeColor=#EA580C;strokeWidth=2;endArrow=block;endFill=1;" edge="1" parent="lane" source="r4" target="r5"><mxGeometry relative="1" as="geometry" /></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

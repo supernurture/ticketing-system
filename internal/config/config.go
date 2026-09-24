@@ -17,7 +17,14 @@ type Config struct {
 	App       App       `mapstructure:"app"`
 	Server    Server    `mapstructure:"server"`
 	Databases Databases `mapstructure:"databases"`
+	Auth      Auth      `mapstructure:"auth"`
 	Logger    Logger    `mapstructure:"logger"`
+}
+
+// Auth holds the JWT signing secret and how long an issued token stays valid.
+type Auth struct {
+	JWTSecret string        `mapstructure:"jwt_secret" validate:"required,min=32"`
+	TokenTTL  time.Duration `mapstructure:"token_ttl"  validate:"required,gt=0"`
 }
 
 // App holds application identity and environment.
@@ -73,7 +80,7 @@ const (
 	configPath = "configs/"
 )
 
-// Load reads configs/config.yaml, overlays .env and the environment, and validates the result before returning it.
+// Load reads configs/config.yaml, applies .env and env vars, then validates.
 func Load() (*Config, error) {
 	if err := godotenv.Load(dotEnvPath); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, fmt.Errorf("load %s: %w", dotEnvPath, err)

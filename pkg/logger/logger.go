@@ -93,16 +93,16 @@ func New(cfg Config) (*Logger, error) {
 	}, nil
 }
 
-// Debug logs at DEBUG level; fields become structured keys on the log line.
+// Debug logs at DEBUG level with fields as JSON keys.
 func (l *Logger) Debug(msg string, fields map[string]any) { l.zap.Debug(msg, zapFields(fields)...) }
 
-// Info logs at INFO level; fields become structured keys on the log line.
+// Info logs at INFO level with fields as JSON keys.
 func (l *Logger) Info(msg string, fields map[string]any) { l.zap.Info(msg, zapFields(fields)...) }
 
-// Warn logs at WARN level; fields become structured keys on the log line.
+// Warn logs at WARN level with fields as JSON keys.
 func (l *Logger) Warn(msg string, fields map[string]any) { l.zap.Warn(msg, zapFields(fields)...) }
 
-// Error logs at ERROR level; fields become structured keys on the log line.
+// Error logs at ERROR level with fields as JSON keys.
 func (l *Logger) Error(msg string, fields map[string]any) { l.zap.Error(msg, zapFields(fields)...) }
 
 // Close flushes buffered logs and closes the underlying file.

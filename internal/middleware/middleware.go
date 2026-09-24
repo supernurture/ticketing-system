@@ -45,7 +45,7 @@ func Default(cfg *config.Config, log *logger.Logger) []gin.HandlerFunc {
 	}
 }
 
-// RequestID reuses a sane inbound X-Request-ID or generates one, then stores it in the request context and echoes it.
+// RequestID reuses a valid X-Request-ID or generates one, then stores and echoes it.
 func RequestID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		reqID := c.GetHeader(requestIDHeader)
@@ -69,8 +69,7 @@ func RequestIDFrom(ctx context.Context) string {
 	return reqID
 }
 
-// RequestContext unwraps the *gin.Context the generated handlers pass down. Work that outlives
-// the request must not hold it: gin pools it and rebinds c.Request for the next one.
+// RequestContext unwraps the *gin.Context from generated handlers; do not keep it past the request.
 func RequestContext(ctx context.Context) context.Context {
 	if c, ok := ctx.(*gin.Context); ok && c.Request != nil {
 		return c.Request.Context()
@@ -135,7 +134,7 @@ func Recovery(log *logger.Logger) gin.HandlerFunc {
 	}
 }
 
-// Timeout gives the handler and every call it makes a deadline, answering 504 on overrun; zero or less disables it.
+// Timeout sets a request deadline and answers 504 on overrun; <= 0 disables it.
 func Timeout(timeout time.Duration) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if timeout <= 0 {
@@ -167,7 +166,7 @@ func SecurityHeaders(hsts bool) gin.HandlerFunc {
 	}
 }
 
-// CORS echoes an allowed Origin and answers preflight; an empty list allows none, "*" allows any without credentials.
+// CORS allows listed origins ("*" for any, without credentials) and answers preflight.
 func CORS(allowed []string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Add("Vary", "Origin")

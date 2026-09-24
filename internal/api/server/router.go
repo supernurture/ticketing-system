@@ -8,14 +8,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"ticketing-system/internal/api/server/modules/auth"
 	"ticketing-system/internal/api/server/modules/health"
+	"ticketing-system/internal/api/server/modules/showtime"
+	authcontract "ticketing-system/internal/api/server/oapicodegen/auth"
 	healthcontract "ticketing-system/internal/api/server/oapicodegen/health"
+	showtimecontract "ticketing-system/internal/api/server/oapicodegen/showtime"
 	"ticketing-system/internal/config"
 	"ticketing-system/internal/container"
 	"ticketing-system/internal/middleware"
 )
 
-// NewRouter builds the gin engine: mode, trusted proxies, the middleware chain, and every module's generated routes.
+// NewRouter builds the gin engine with the middleware chain and every module's routes.
 func NewRouter(cfg *config.Config, deps *container.Container) (*gin.Engine, error) {
 	gin.SetMode(cfg.Server.Mode)
 
@@ -24,35 +28,58 @@ func NewRouter(cfg *config.Config, deps *container.Container) (*gin.Engine, erro
 		return nil, fmt.Errorf("set trusted proxies: %w", err)
 	}
 
-	// Without this, a handler's *gin.Context carries no deadline and the timeout never reaches downstream calls.
+	// Lets the request deadline reach handlers and downstream calls.
 	router.ContextWithFallback = true
 	router.Use(middleware.Default(cfg, deps.Logger)...)
 
-	register(router)
+	register(router, cfg, deps)
 	return router, nil
 }
 
-func register(router gin.IRouter) {
+func register(router gin.IRouter, cfg *config.Config, deps *container.Container) {
 	healthcontract.RegisterHandlersWithOptions(router,
 		healthcontract.NewStrictHandlerWithOptions(health.NewHandler(), nil, healthOptions),
 		healthcontract.GinServerOptions{ErrorHandler: invalidParam})
+
+	db := deps.Postgres["ticketing"]
+	if db == nil {
+		return
+	}
+	secret := []byte(cfg.Auth.JWTSecret)
+
+	authcontract.RegisterHandlersWithOptions(router,
+		authcontract.NewStrictHandlerWithOptions(
+			auth.NewHandler(auth.NewService(auth.NewRepository(db), secret, cfg.Auth.TokenTTL, deps.Logger)),
+			nil, authOptions),
+		authcontract.GinServerOptions{ErrorHandler: invalidParam})
+
+	// Auth runs before parameter parsing, so anonymous callers always get 401.
+	showtimecontract.RegisterHandlersWithOptions(router.Group("", middleware.Auth(secret)),
+		showtimecontract.NewStrictHandlerWithOptions(
+			showtime.NewHandler(showtime.NewService(showtime.NewRepository(db)), deps.Logger), nil, showtimeOptions),
+		showtimecontract.GinServerOptions{ErrorHandler: invalidParam})
 }
 
-// The generated defaults write err.Error() into the body, leaking internals such as database errors,
-// and answer {"msg": ...} where the spec's Error, Recovery and Timeout all use "message".
+// Replace the generated defaults, which leak err.Error() and answer "msg" instead of "message".
 var (
 	healthOptions = healthcontract.StrictGinServerOptions{
 		RequestErrorHandlerFunc: badRequest, HandlerErrorFunc: internalError, ResponseErrorHandlerFunc: internalError,
 	}
+	authOptions = authcontract.StrictGinServerOptions{
+		RequestErrorHandlerFunc: badRequest, HandlerErrorFunc: internalError, ResponseErrorHandlerFunc: internalError,
+	}
+	showtimeOptions = showtimecontract.StrictGinServerOptions{
+		RequestErrorHandlerFunc: badRequest, HandlerErrorFunc: internalError, ResponseErrorHandlerFunc: internalError,
+	}
 )
 
-// invalidParam answers a path or query parameter that does not parse; the message names the parameter.
+// invalidParam answers an unparsable path or query parameter.
 func invalidParam(c *gin.Context, err error, status int) {
 	_ = c.Error(err)
 	c.JSON(status, gin.H{"message": err.Error()})
 }
 
-// badRequest answers a body the server could not decode; the decoder's message is about the caller's input.
+// badRequest answers an undecodable request body.
 func badRequest(c *gin.Context, err error) {
 	_ = c.Error(err)
 	switch tooLarge := (*http.MaxBytesError)(nil); {
@@ -68,8 +95,7 @@ func badRequest(c *gin.Context, err error) {
 // internalError keeps the cause in c.Errors for AccessLog and out of the response.
 func internalError(c *gin.Context, err error) {
 	_ = c.Error(err)
-	// Left unwritten past the deadline, so Timeout can answer 504; and a response already
-	// on the wire (a failed write) must not get a second body appended.
+	// No body past the deadline (Timeout answers 504) or after a failed write.
 	if c.Writer.Written() || c.Request.Context().Err() != nil {
 		c.Status(http.StatusInternalServerError)
 		return
